@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Waste Heat Recovery Calculator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #eaf3f1 0%, #ffffff 100%);
+      color: #223344;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .container {
+      width: min(520px, 100%);
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 14px 28px rgba(19, 40, 56, 0.18);
+      padding: 24px;
+      max-width: 520px;
+    }
+    h1 {
+      font-size: 1.45rem;
+      margin-bottom: 0.5rem;
+      text-align: center;
+      color: #0d5348;
+    }
+    p.subtitle {
+      margin: 0 0 22px;
+      text-align: center;
+      color: #4a606d;
+    }
+    .field {
+      margin-bottom: 14px;
+    }
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #35495e;
+    }
+    .field input {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 10px;
+      border: 1px solid #c8d6de;
+      outline: none;
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .field input:focus {
+      border-color: #24a893;
+      box-shadow: 0 0 0 4px rgba(36, 168, 147, 0.15);
+    }
+    #calculateBtn {
+      width: 100%;
+      padding: 13px;
+      margin: 14px 0 16px;
+      border: none;
+      border-radius: 11px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(120deg, #23866f, #17635d);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+    }
+    #calculateBtn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+      box-shadow: 0 9px 18px rgba(23, 99, 93, 0.33);
+    }
+    #calculateBtn:active {
+      transform: translateY(1px);
+    }
+    #result {
+      background: #f6fbfa;
+      border: 1px solid #d8eaeb;
+      border-radius: 12px;
+      padding: 14px;
+      color: #0f4244;
+      margin-top: 12px;
+    }
+    #result h2 {
+      margin: 0 0 10px;
+      font-size: 1.07rem;
+      color: #1f5258;
+    }
+    #result p {
+      margin: 7px 0;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+    .error {
+      color: #be2d2d;
+      font-size: 0.92rem;
+      margin-top: -8px;
+      margin-bottom: 10px;
+    }
+    footer {
+      margin-top: 16px;
+      text-align: center;
+      color: #55717c;
+      font-size: 0.9rem;
+    }
+    @media (max-width: 420px) {
+      .container { padding: 18px; }
+      h1 { font-size: 1.3rem; }
+      #calculateBtn { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Waste Heat Recovery Calculator</h1>
+    <p class="subtitle">Estimate energy savings from recovered waste heat</p>
+    <div class="field">
+      <label for="machineTemp">Machine Temperature (°C)</label>
+      <input id="machineTemp" type="number" min="0" step="any" placeholder="e.g. 450" />
+      <div id="machineTempError" class="error" style="display:none;"></div>
+    </div>
+    <div class="field">
+      <label for="ambientTemp">Ambient Temperature (°C)</label>
+      <input id="ambientTemp" type="number" min="0" step="any" placeholder="e.g. 28" />
+      <div id="ambientTempError" class="error" style="display:none;"></div>
+    </div>
+    <div class="field">
+      <label for="fuelInput">Fuel/Energy Input (kWh)</label>
+      <input id="fuelInput" type="number" min="0" step="any" placeholder="e.g. 1200" />
+      <div id="fuelInputError" class="error" style="display:none;"></div>
+    </div>
+    <button id="calculateBtn">Calculate</button>
+    <div id="result" style="display: none;">
+      <h2>Calculation Results</h2>
+      <p id="heatLossOutput">Heat Loss: ...</p>
+      <p id="recoverableHeatOutput">Recoverable Heat: ...</p>
+      <p id="costSavingsOutput">Estimated Cost Savings: ...</p>
+    </div>
+    <footer>Developed for Green Manufacturing Project</footer>
+  </div>
+
+  <script>
+    const machineTemp = document.getElementById("machineTemp");
+    const ambientTemp = document.getElementById("ambientTemp");
+    const fuelInput = document.getElementById("fuelInput");
+    const calculateBtn = document.getElementById("calculateBtn");
+    const result = document.getElementById("result");
+    const heatLossOutput = document.getElementById("heatLossOutput");
+    const recoverableHeatOutput = document.getElementById("recoverableHeatOutput");
+    const costSavingsOutput = document.getElementById("costSavingsOutput");
+    const errors = {
+      machineTemp: document.getElementById("machineTempError"),
+      ambientTemp: document.getElementById("ambientTempError"),
+      fuelInput: document.getElementById("fuelInputError"),
+    };
+
+    function resetErrors() {
+      Object.values(errors).forEach(e => {
+        e.textContent = "";
+        e.style.display = "none";
+      });
+    }
+
+    function validateField(inputEl, errorEl, fieldName) {
+      const value = inputEl.value.trim();
+      if (value === "") {
+        errorEl.textContent = `${fieldName} is required.`;
+        errorEl.style.display = "block";
+        return false;
+      }
+      const numeric = parseFloat(value);
+      if (Number.isNaN(numeric) || numeric <= 0) {
+        errorEl.textContent = `${fieldName} must be a positive number.`;
+        errorEl.style.display = "block";
+        return false;
+      }
+      return true;
+    }
+
+    calculateBtn.addEventListener("click", () => {
+      resetErrors();
+      const okMachine = validateField(machineTemp, errors.machineTemp, "Machine Temperature");
+      const okAmbient = validateField(ambientTemp, errors.ambientTemp, "Ambient Temperature");
+      const okFuel = validateField(fuelInput, errors.fuelInput, "Fuel/Energy Input");
+
+      if (!okMachine || !okAmbient || !okFuel) {
+        result.style.display = "none";
+        return;
+      }
+
+      const machineVal = parseFloat(machineTemp.value);
+      const ambientVal = parseFloat(ambientTemp.value);
+      const fuelVal = parseFloat(fuelInput.value);
+
+      const heatLoss = machineVal - ambientVal;
+      if (heatLoss <= 0) {
+        errors.machineTemp.textContent = "Machine Temperature should be greater than Ambient Temperature for positive heat loss.";
+        errors.machineTemp.style.display = "block";
+        result.style.display = "none";
+        return;
+      }
+
+      const recoverableHeat = heatLoss * 0.6;
+      const costSavings = recoverableHeat * 0.1;
+
+      heatLossOutput.textContent = `Heat Loss: ${heatLoss.toFixed(2)} °C`;
+      recoverableHeatOutput.textContent = `Recoverable Heat: ${recoverableHeat.toFixed(2)} units`;
+      costSavingsOutput.textContent = `Estimated Cost Savings: ${costSavings.toFixed(2)} (relative units)`;
+      result.style.display = "block";
+    });
+  </script>
+</body>
+</html>
